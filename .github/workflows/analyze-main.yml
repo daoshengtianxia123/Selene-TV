@@ -1,0 +1,51 @@
+name: Analyze Selene MainActivity
+
+on:
+  push:
+    branches:
+      - apk-live-mod
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  analyze-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool unzip curl
+          curl -L --fail -o jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.3/jadx-1.5.3.zip
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+      - name: Decode APK
+        run: |
+          curl -L --fail -o SeleneTV.apk https://github.com/MoonTechLab/Selene-TV/releases/download/v1.4.6/SeleneTV-v1.4.6-armeabi-v7a.apk
+          rm -rf main-analysis out-apk out-jadx
+          apktool d -f SeleneTV.apk -o out-apk
+          ./jadx/bin/jadx -d out-jadx --no-res --no-imports SeleneTV.apk || true
+          mkdir -p main-analysis
+          cp out-apk/AndroidManifest.xml main-analysis/AndroidManifest.xml
+          [ -f out-apk/res/values/strings.xml ] && cp out-apk/res/values/strings.xml main-analysis/strings.xml || true
+          find out-jadx/sources -path '*org/moontechlab/selenetv/MainActivity.java' -exec cp {} main-analysis/MainActivity.java \;
+          find out-apk -path '*org/moontechlab/selenetv/MainActivity.smali' -exec cp {} main-analysis/MainActivity.smali \;
+          grep -RIl -E 'setContent|HomeTab|LiveTab|MainActivity|selectedTab|selected.*tab|tabIndex|current.*tab|Screen|LIVE|HOME' out-jadx/sources/defpackage             | head -n 80 > main-analysis/root-files.txt || true
+          mkdir -p main-analysis/root-java main-analysis/root-smali
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            cp "$f" "main-analysis/root-java/$(basename "$f")"
+            b="$(basename "$f" .java).smali"
+            find out-apk/smali* -name "$b" -exec cp {} "main-analysis/root-smali/$b" \; | head -1
+          done < main-analysis/root-files.txt
+      - name: Commit analysis
+        run: |
+          rm -rf apk-main-analysis
+          mv main-analysis apk-main-analysis
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk-main-analysis
+          git commit -m "Analyze SeleneTV main navigation" || exit 0
+          git push
