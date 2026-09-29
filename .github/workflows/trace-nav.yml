@@ -1,0 +1,37 @@
+name: Trace Selene navigation
+
+on:
+  push:
+    branches: [apk-live-mod]
+
+permissions:
+  contents: write
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool unzip curl
+          curl -L --fail -o jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.3/jadx-1.5.3.zip
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+          curl -L --fail -o app.apk https://github.com/MoonTechLab/Selene-TV/releases/download/v1.4.6/SeleneTV-v1.4.6-armeabi-v7a.apk
+          apktool d -f app.apk -o out-apk
+          ./jadx/bin/jadx -d out-jadx --no-res --no-imports app.apk || true
+          rm -rf apk-nav-trace
+          mkdir -p apk-nav-trace/files
+          for n in xj1 rg2 pj s7 wc xr1 vu2 lj qf bt1 fe2 cf2 oa he2 tf2 qd2 zc2; do
+            [ -f "out-jadx/sources/defpackage/$n.java" ] && cp "out-jadx/sources/defpackage/$n.java" "apk-nav-trace/files/$n.java"
+            find out-apk/smali* -name "$n.smali" -exec cp {} "apk-nav-trace/files/$n.smali" \; | head -1
+          done
+          grep -RIn -E '"首页"|"直播"|"设置"|"搜索"|HomeTab|LiveTab|SettingsTab|SearchTab|selectedTab|currentTab|tabIndex|initialTab|LivePlayerScreen|CCTV' out-jadx/sources/defpackage > apk-nav-trace/grep-java.txt || true
+          grep -RIn -E '首页|直播|设置|搜索|HomeTab|LiveTab|SettingsTab|SearchTab|selectedTab|currentTab|tabIndex|initialTab|LivePlayerScreen|CCTV' out-apk/smali* > apk-nav-trace/grep-smali.txt || true
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk-nav-trace
+          git commit -m "Trace Selene navigation state" || exit 0
+          git push
