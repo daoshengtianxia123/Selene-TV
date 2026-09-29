@@ -1,0 +1,75 @@
+name: Analyze Selene APK live flow
+
+on:
+  push:
+    branches:
+      - apk-live-mod
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool unzip zip curl grep sed
+          curl -L --fail -o jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.3/jadx-1.5.3.zip
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+
+      - name: Download APK
+        run: |
+          curl -L --fail -o SeleneTV.apk https://github.com/MoonTechLab/Selene-TV/releases/download/v1.4.6/SeleneTV-v1.4.6-armeabi-v7a.apk
+
+      - name: Decode
+        run: |
+          rm -rf analysis-apk
+          mkdir -p analysis-apk
+          apktool d -f SeleneTV.apk -o analysis-apk/apktool
+          ./jadx/bin/jadx -d analysis-apk/jadx --no-res --no-imports SeleneTV.apk || true
+
+      - name: Collect relevant files
+        run: |
+          mkdir -p analysis-apk/relevant-smali analysis-apk/relevant-java
+          grep -RIl -E 'LiveTab|LivePlayerScreen|LiveChannelPanel|LiveService|HomeTab|currentTable|live_channel_tab|live_sources|CCTV|直播' analysis-apk/apktool/smali*             | head -n 120 > analysis-apk/smali-files.txt || true
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            d="analysis-apk/relevant-smali/${f#analysis-apk/apktool/}"
+            mkdir -p "$(dirname "$d")"
+            cp "$f" "$d"
+          done < analysis-apk/smali-files.txt
+
+          grep -RIl -E 'LiveTab|LivePlayerScreen|LiveChannelPanel|LiveService|HomeTab|currentTable|live_channel_tab|live_sources|CCTV|直播' analysis-apk/jadx/sources             | head -n 120 > analysis-apk/java-files.txt || true
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            d="analysis-apk/relevant-java/${f#analysis-apk/jadx/sources/}"
+            mkdir -p "$(dirname "$d")"
+            cp "$f" "$d"
+          done < analysis-apk/java-files.txt
+
+          {
+            echo "=== SMALI FILES ==="
+            cat analysis-apk/smali-files.txt || true
+            echo
+            echo "=== JAVA FILES ==="
+            cat analysis-apk/java-files.txt || true
+          } > analysis-apk/report.txt
+
+      - name: Commit analysis
+        run: |
+          rm -rf apk-analysis
+          mkdir apk-analysis
+          cp -r analysis-apk/relevant-smali apk-analysis/
+          cp -r analysis-apk/relevant-java apk-analysis/
+          cp analysis-apk/report.txt apk-analysis/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk-analysis
+          git commit -m "Analyze SeleneTV live flow" || exit 0
+          git push
