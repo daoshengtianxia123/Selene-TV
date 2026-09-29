@@ -1,0 +1,34 @@
+=== SMALI FILES ===
+analysis-apk/apktool/smali/uf2.smali
+analysis-apk/apktool/smali/yd.smali
+analysis-apk/apktool/smali/w01.smali
+analysis-apk/apktool/smali/sk1.smali
+analysis-apk/apktool/smali_classes2/af2.smali
+analysis-apk/apktool/smali_classes2/ze2.smali
+analysis-apk/apktool/smali_classes2/oa.smali
+analysis-apk/apktool/smali_classes2/qk1.smali
+analysis-apk/apktool/smali_classes2/io/netty/handler/codec/compression/Bzip2HuffmanStageDecoder.smali
+analysis-apk/apktool/smali_classes2/tf2.smali
+analysis-apk/apktool/smali_classes2/dd2.smali
+analysis-apk/apktool/smali_classes2/o9.smali
+analysis-apk/apktool/smali_classes2/jj.smali
+analysis-apk/apktool/smali_classes2/ae2.smali
+analysis-apk/apktool/smali_classes2/cf2.smali
+analysis-apk/apktool/smali_classes2/nd2.smali
+
+=== JAVA FILES ===
+analysis-apk/jadx/sources/io/netty/handler/codec/compression/Bzip2HuffmanStageDecoder.java
+analysis-apk/jadx/sources/defpackage/nd2.java
+analysis-apk/jadx/sources/defpackage/jj.java
+analysis-apk/jadx/sources/defpackage/ae2.java
+analysis-apk/jadx/sources/defpackage/pc1.java
+analysis-apk/jadx/sources/defpackage/ph0.java
+analysis-apk/jadx/sources/defpackage/pd2.java
+analysis-apk/jadx/sources/defpackage/af2.java
+analysis-apk/jadx/sources/defpackage/yd.java
+analysis-apk/jadx/sources/defpackage/o9.java
+analysis-apk/jadx/sources/defpackage/uf2.java
+analysis-apk/jadx/sources/defpackage/cf2.java
+analysis-apk/jadx/sources/defpackage/qk1.java
+analysis-apk/jadx/sources/defpackage/sk1.java
+analysis-apk/jadx/sources/defpackage/ze2.java
