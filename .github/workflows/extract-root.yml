@@ -1,0 +1,39 @@
+name: Extract Selene root composable
+
+on:
+  push:
+    branches: [apk-live-mod]
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool unzip curl
+          curl -L --fail -o jadx.zip https://github.com/skylot/jadx/releases/download/v1.5.3/jadx-1.5.3.zip
+          unzip -q jadx.zip -d jadx
+          chmod +x jadx/bin/jadx
+          curl -L --fail -o app.apk https://github.com/MoonTechLab/Selene-TV/releases/download/v1.4.6/SeleneTV-v1.4.6-armeabi-v7a.apk
+          apktool d -f app.apk -o out-apk
+          ./jadx/bin/jadx -d out-jadx --no-res --no-imports app.apk || true
+          rm -rf apk-root-extra
+          mkdir -p apk-root-extra
+          for n in qj bt1 tf2 he2 fe2 qd2 zc2 ad2 ed2 fd2 dd2 ke2 il jc pi a9; do
+            [ -f "out-jadx/sources/defpackage/$n.java" ] && cp "out-jadx/sources/defpackage/$n.java" "apk-root-extra/$n.java"
+            find out-apk/smali* -name "$n.smali" -exec cp {} "apk-root-extra/$n.smali" \; | head -1
+          done
+          grep -RIl -E '"(首页|直播|设置|搜索|电影|剧集|动漫|综艺)"|LiveTab|HomeTab|SettingsTab|SearchTab' out-jadx/sources/defpackage             | head -n 120 > apk-root-extra/nav-files.txt || true
+          while IFS= read -r f; do
+            cp "$f" "apk-root-extra/$(basename "$f")" || true
+          done < apk-root-extra/nav-files.txt
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apk-root-extra
+          git commit -m "Extract Selene root composable" || exit 0
+          git push
